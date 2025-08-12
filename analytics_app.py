@@ -45,11 +45,41 @@ sb = create_client(st.secrets["SUPABASE_URL"], st.secrets["SUPABASE_SERVICE_KEY"
 
 @st.cache_data(ttl=60)
 def load_data(cutoff_iso: str):
-    daily = sb.table("daily_message_counts").select("*").gte("day", cutoff_iso).order("day", asc=True).execute().data
-    channel = sb.table("channel_message_counts").select("*").gte("day", cutoff_iso).order("day", asc=True).execute().data
-    active = sb.table("daily_active_conversations").select("*").gte("day", cutoff_iso).order("day", asc=True).execute().data
-    convs = sb.table("conversations").select("status,last_message_at").gte("last_message_at", cutoff_iso).execute().data
+    # Use .order("day") for ascending; desc=False is the default
+    daily = (
+        sb.table("daily_message_counts")
+          .select("*")
+          .gte("day", cutoff_iso)
+          .order("day")              # ascending
+          .execute()
+          .data
+    )
+    channel = (
+        sb.table("channel_message_counts")
+          .select("*")
+          .gte("day", cutoff_iso)
+          .order("day")              # ascending
+          .execute()
+          .data
+    )
+    active = (
+        sb.table("daily_active_conversations")
+          .select("*")
+          .gte("day", cutoff_iso)
+          .order("day")              # ascending
+          .execute()
+          .data
+    )
+    convs = (
+        sb.table("conversations")
+          .select("status,last_message_at")
+          .gte("last_message_at", cutoff_iso)
+          .execute()
+          .data
+    )
+    import pandas as pd
     return pd.DataFrame(daily), pd.DataFrame(channel), pd.DataFrame(active), pd.DataFrame(convs)
+
 
 # ----- sidebar controls ------------------------------------------------------
 try:
@@ -141,3 +171,4 @@ with cB:
 with cC:
     if not active_df.empty:
         st.download_button("Download active.csv", active_df.to_csv(index=False), "active.csv", "text/csv")
+
